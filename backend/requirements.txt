@@ -7,5 +7,6 @@ numpy==2.3.2
 joblib==1.5.3
 
 fastapi==0.162.0
+python-multipart==0.0.32   # required for CSV file upload
 uvicorn[standard]==0.54.0
 pydantic==2.14.1

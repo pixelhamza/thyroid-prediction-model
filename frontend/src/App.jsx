@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import ModelInfo from "./ModelInfo.jsx";
 import Predict from "./Predict.jsx";
+import Batch from "./Batch.jsx";
 
 const TABS = [
   ["predict", "Try it"],
+  ["batch", "Upload CSV"],
   ["model", "About the model"],
 ];
 
@@ -52,7 +54,9 @@ export default function App() {
         ))}
       </div>
 
-      {tab === "predict" ? <Predict /> : <ModelInfo />}
+      {tab === "predict" && <Predict />}
+      {tab === "batch" && <Batch />}
+      {tab === "model" && <ModelInfo />}
     </div>
   );
 }
