@@ -1,0 +1,12 @@
+.git
+.gitignore
+.venv
+**/node_modules
+**/dist
+models
+notebook
+**/__pycache__
+**/.ipynb_checkpoints
+.DS_Store
+Dockerfile
+.dockerignore
