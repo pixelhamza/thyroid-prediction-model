@@ -1,0 +1,11 @@
+# Serving environment — intentionally lean (no matplotlib, no jupyter).
+# scikit-learn, pandas and numpy MUST match the versions in ../requirements.txt that
+# trained the model, or joblib.load() will warn and may silently misbehave.
+scikit-learn==1.9.0
+pandas==2.3.1
+numpy==2.3.2
+joblib==1.5.3
+
+fastapi==0.162.0
+uvicorn[standard]==0.54.0
+pydantic==2.14.1
