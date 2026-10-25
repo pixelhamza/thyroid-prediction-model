@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# Trained model artifacts — regenerate from the notebooks, don't commit binaries
+models/
+*.joblib
+*.pkl
+
+# Frontend (once a toolchain exists)
+node_modules/
+dist/
+.env
+.env.local
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
