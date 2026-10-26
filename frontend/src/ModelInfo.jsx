@@ -40,7 +40,7 @@ export default function ModelInfo() {
       <div className="card">
         <h2>Why a random forest</h2>
         <p>
-          Three models were compared under 25-fit repeated stratified cross-validation, so each
+          Four models were compared under 25-fit repeated stratified cross-validation, so each
           gap can be judged against its own variability. Bars show recall &mdash; the share of
           hypothyroid patients actually caught.
         </p>
@@ -89,6 +89,10 @@ export default function ModelInfo() {
           points behind on recall &mdash; far outside either standard deviation &mdash; so it was
           rejected. The depth-3 tree comes close on recall, but it emits only 3 distinct scores
           against the forest&rsquo;s 367, which is what makes the threshold slider meaningful.
+        </p>
+        <p>
+          Logistic regression is the closest rival on recall (0.9911) but the weakest on precision
+          (0.6563), so at a matched 95% recall it raises 29 false alarms where the forest raises 9.
         </p>
         <p>
           The tree still ships, as the explanation layer: every prediction is accompanied by the

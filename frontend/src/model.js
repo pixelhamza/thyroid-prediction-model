@@ -24,6 +24,7 @@ export const HEADLINE = [
 // Recall from 25-fit repeated stratified CV (mean ± sd).
 export const COMPARISON = [
   { name: "Random forest", recall: 0.9931, sd: 0.0097, ap: 0.8935, pick: "served" },
+  { name: "Logistic regression", recall: 0.9911, sd: 0.0086, ap: 0.8573, pick: "rejected" },
   { name: "Decision tree (d3)", recall: 0.9897, sd: 0.0137, ap: 0.8073, pick: "explains" },
   { name: "SVM (RBF)", recall: 0.8344, sd: 0.0538, ap: 0.8304, pick: "rejected" },
 ];

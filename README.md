@@ -24,6 +24,7 @@ Clinical history is excluded on purpose. Flags like `on thyroxine` mean the cond
 | | recall | avg precision | role |
 |---|---|---|---|
 | **Random forest** | **0.9931 ± 0.0097** | **0.8935** | serving |
+| Logistic regression | 0.9911 ± 0.0086 | 0.8573 | rejected |
 | Decision tree (d3) | 0.9897 ± 0.0137 | 0.8073 | explains |
 | SVM (RBF) | 0.8344 ± 0.0538 | 0.8304 | rejected |
 
@@ -37,6 +38,12 @@ Accuracy is not the headline: at 7.96% prevalence, always answering "negative" s
 Highest recall and average precision. The SVM trails by 16 recall points — outside either
 standard deviation. The tree matches on recall but emits 3 distinct scores against the forest's
 367, so its threshold cannot be tuned.
+
+Logistic regression comes closest: recall 0.9911 against the forest's 0.9931. It loses on
+precision — 0.6563 against 0.8068 — so at a matched 95% recall it costs 29 false alarms where
+the forest costs 9. Its coefficients are a useful cross-check though: `TSH` positive and largest,
+`TT4` negative, `age` and `sex` near zero, which is the same ordering the forest's permutation
+importance found.
 
 The tree still ships as the explanation layer. Its first split is `TSH <= 6.05`, the standard
 clinical cutoff, recovered from the data. It agrees with the forest on 99.5% of test patients;
@@ -68,7 +75,7 @@ the build.
 ```
 backend/     FastAPI service + training script
 frontend/    Vite + React UI
-notebook/    cleaning, EDA, three models, comparison
+notebook/    cleaning, EDA, four models, comparison
 dataset/     hypothyroid.csv (UCI)
 ```
 

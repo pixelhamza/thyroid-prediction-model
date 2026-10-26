@@ -21,6 +21,9 @@ dist/
 .env
 .env.local
 
+# Slides and notes — regenerated, not versioned
+presentation/
+
 # OS / editor
 .DS_Store
 .vscode/
