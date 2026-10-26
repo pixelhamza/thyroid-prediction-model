@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FLAGS, LABS, EMPTY, EXAMPLES } from "./model.js";
+import { LABS, EMPTY, EXAMPLES } from "./model.js";
 
 // "" means the test was not run — send null so the API passes NaN to the model.
 const toNumber = (v) => (String(v).trim() === "" ? null : Number(v));
@@ -21,7 +21,6 @@ export default function Predict() {
       sex: form.sex || null,
       threshold: Number(form.threshold),
       ...Object.fromEntries(LABS.map(([id]) => [id, toNumber(form[id])])),
-      ...Object.fromEntries(FLAGS.map(([id]) => [id, form[id]])),
     };
     try {
       const res = await fetch("/predict", {
@@ -103,25 +102,10 @@ export default function Predict() {
           ))}
         </div>
         <p className="hint">
-          Leave a field blank if the test was not run. The forest handles that directly rather than
-          substituting a value &mdash; which is the main reason it was chosen over the SVM. TSH is
-          by far the strongest predictor.
+          Leave a field blank if the test was not run. The forest handles that directly rather
+          than substituting a value. TSH is by far the strongest predictor; FTI is TT4 divided by
+          T4U, so it is a derived index rather than a fifth test.
         </p>
-      </div>
-
-      <div className="card">
-        <h2>History &amp; symptoms</h2>
-        <div className="checks">
-          {FLAGS.map(([id, label]) => (
-            <label className="chk" key={id}>
-              <input
-                type="checkbox" checked={form[id]}
-                onChange={(e) => set(id, e.target.checked)}
-              />
-              {label}
-            </label>
-          ))}
-        </div>
       </div>
 
       <div className="card">
@@ -136,7 +120,7 @@ export default function Predict() {
         />
         <p className="hint">
           Lower catches more cases and raises more false alarms. On the test set, 0.50 missed
-          nobody; 0.10 would add 23 more false alarms for no extra cases found.
+          nobody for 10 false alarms; 0.10 would add 13 more for no extra cases found.
         </p>
       </div>
 

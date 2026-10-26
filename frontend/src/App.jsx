@@ -36,8 +36,8 @@ export default function App() {
         </button>
       </div>
       <p className="tagline">
-        Random forest predicting hypothyroidism from routine blood tests, with a depth-3 decision
-        tree supplying the reason for every call.
+        Random forest predicting hypothyroidism from four blood tests plus age and sex, with a
+        depth-3 decision tree supplying the reason for every call.
       </p>
 
       <div className="tabs" role="tablist">

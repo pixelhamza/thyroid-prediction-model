@@ -11,59 +11,56 @@ license: mit
 
 # Thyroid Disease Classification
 
-Predicts whether a patient is **negative** or **hypothyroid** from five routine blood tests and
-fourteen clinical flags. A random forest makes the call; a depth-3 decision tree supplies the
-reason for every prediction.
+Predicts **negative** or **hypothyroid** from four blood tests plus age and sex.
+A random forest makes the call; a depth-3 decision tree supplies the reason.
 
-> Decision support for exploration only. Not a diagnostic device, and not validated for clinical use.
+> Decision support for exploration only. Not a diagnostic device.
 
-## Using it
+## Inputs
 
-- **Try it** — enter one patient, or load a preset. Leave a blood test blank if it was not run;
-  the model handles missing values directly rather than substituting a figure.
-- **Upload CSV** — score up to 5,000 patients at once and download the results. If your file has a
-  `binaryClass` column, the model is also scored against it.
-- **About the model** — performance, the model comparison, and the limits.
-
-## Performance
-
-On a held-out set of 742 patients containing 58 hypothyroid cases:
-
-| metric | value |
+| | |
 |---|---|
-| recall | 1.000 — none missed |
-| precision | 0.951 — 3 false alarms |
-| average precision | 0.996 |
+| Blood tests | `TSH` `TT4` `T4U` `FTI` |
+| Demographics | `age` `sex` |
 
-Accuracy (0.996) is deliberately not the headline: at 7.7% prevalence, answering "negative" every
-time scores 92.3%.
+Clinical history is excluded on purpose. Flags like `on thyroxine` mean the condition was
+*already* diagnosed, which a screening model would not know.
 
-## Model choice
+## Results
 
-Three candidates under 25-fold repeated stratified cross-validation:
+3,658 patients, 291 hypothyroid (7.96%). Held-out set of 732 with 58 cases.
 
-| model | recall | avg precision | outcome |
+| | recall | avg precision | role |
 |---|---|---|---|
-| Random forest (500 trees) | 0.9931 ± 0.0108 | 0.9885 | **serving** |
-| Decision tree (depth 3) | 0.9931 ± 0.0108 | 0.9452 | **explains predictions** |
-| SVM (RBF, C=10) | 0.8406 ± 0.0577 | 0.9460 | rejected |
+| **Random forest** | **0.9931 ± 0.0097** | **0.8935** | serving |
+| Decision tree (d3) | 0.9897 ± 0.0137 | 0.8073 | explains |
+| SVM (RBF) | 0.8344 ± 0.0538 | 0.8304 | rejected |
 
-The forest and the tree tie on recall to four decimals. The SVM is 15 points behind — well outside
-either standard deviation — so it was dropped. The forest was preferred over the tree because it
-emits 731 distinct scores against the tree's 4, which is what makes the threshold control
-meaningful, and because it reads a missing blood test as information instead of needing a fill.
+Recall and average precision from 25-fit repeated stratified CV. On the held-out set the forest
+misses nobody for 10 false alarms.
 
-## Known limits
+Accuracy is not the headline: at 7.96% prevalence, always answering "negative" scores 92.0%.
 
-- **The label is nearly a rule on TSH.** Only 2 of 291 hypothyroid cases sit below TSH 6.05, and
-  the original diagnoses were made by clinicians applying that cutoff to these same columns.
-  Remove TSH and average precision collapses from 0.996 to 0.360.
-- **The population was already referred, not screened.** `on thyroxine` is the second strongest
-  feature and is circular — replacement therapy means the condition was already diagnosed.
-- **Binary only.** The source data contains no hyperthyroid cases, so that class cannot be
-  predicted.
+## Why the forest
 
-## Running locally
+Highest recall and average precision. The SVM trails by 16 recall points — outside either
+standard deviation. The tree matches on recall but emits 3 distinct scores against the forest's
+367, so its threshold cannot be tuned.
+
+The tree still ships as the explanation layer. Its first split is `TSH <= 6.05`, the standard
+clinical cutoff, recovered from the data. It agrees with the forest on 99.5% of test patients;
+the API returns both so disagreements are visible.
+
+## Limits
+
+- **The label is nearly a rule on TSH.** Only 2 of 291 cases sit below TSH 6.05, and the original
+  diagnoses applied that cutoff to these same columns. Drop TSH and average precision falls to 0.447.
+- **FTI is derived**, not measured — it is `TT4 / T4U`.
+- **The population was referred, not screened.** Prevalence is far above a general population, and
+  every hypothyroid patient had TSH ordered.
+- **Binary only.** No hyperthyroid cases exist in the source data.
+
+## Run
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r backend/requirements.txt
@@ -72,19 +69,16 @@ cd frontend && npm install && npm run build    # writes frontend/dist/
 cd .. && .venv/bin/uvicorn backend.main:app --reload
 ```
 
-Or with Docker, which also trains the model during the build:
-
-```bash
-docker build -t thyroid-app . && docker run -p 7860:7860 thyroid-app
-```
+Or `docker build -t thyroid-app . && docker run -p 7860:7860 thyroid-app`, which trains during
+the build.
 
 ## Layout
 
 ```
 backend/     FastAPI service + training script
 frontend/    Vite + React UI
-notebook/    EDA, per-model notebooks, model comparison
-dataset/     the source CSV
+notebook/    cleaning, EDA, three models, comparison
+dataset/     hypothyroid.csv (UCI)
 ```
 
-Data: UCI thyroid disease dataset, pre-collapsed to a binary label.
+Cleaning is reproduced step by step in `notebook/thyroid.ipynb` section 3.

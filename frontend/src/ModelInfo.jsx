@@ -9,8 +9,14 @@ export default function ModelInfo() {
         <h2>What this predicts</h2>
         <p>
           A random forest estimates the probability that a patient is <strong>hypothyroid</strong>,
-          from five routine blood tests and fourteen clinical flags. It was trained on 3,708
-          patients, of whom 291 (7.8%) were hypothyroid.
+          from four blood tests plus age and sex. It was trained on 3,658 patients, of whom 291
+          (8.0%) were hypothyroid.
+        </p>
+        <p>
+          The six inputs are <code>TSH</code>, <code>TT4</code>, <code>T4U</code>,{" "}
+          <code>FTI</code>, <code>age</code> and <code>sex</code>. Clinical history is
+          deliberately left out: flags such as being on thyroxine record that a thyroid problem
+          was <em>already</em> diagnosed and treated, which a screening model would not know.
         </p>
         <p>
           The target is <strong>binary</strong> &mdash; negative versus hypothyroid. The source
@@ -25,16 +31,16 @@ export default function ModelInfo() {
           ))}
         </div>
         <p className="hint">
-          On a held-out set of 742 patients containing 58 hypothyroid cases. Accuracy is
-          deliberately not shown: at 7.7% prevalence, answering &ldquo;negative&rdquo; every time
-          scores 92.3%.
+          On a held-out set of 732 patients containing 58 hypothyroid cases. Accuracy is
+          deliberately not shown: at 8.0% prevalence, answering &ldquo;negative&rdquo; every time
+          scores 92.0%.
         </p>
       </div>
 
       <div className="card">
         <h2>Why a random forest</h2>
         <p>
-          Three models were compared under 25-fold repeated stratified cross-validation, so each
+          Three models were compared under 25-fit repeated stratified cross-validation, so each
           gap can be judged against its own variability. Bars show recall &mdash; the share of
           hypothyroid patients actually caught.
         </p>
@@ -79,15 +85,15 @@ export default function ModelInfo() {
         </table>
         <h3>The reasoning</h3>
         <p>
-          The forest and the depth-3 tree tie on recall to four decimals. The SVM is 15 points
-          behind &mdash; far outside either standard deviation &mdash; so it was rejected. The
-          forest was chosen over the tree because it emits 731 distinct scores against the
-          tree&rsquo;s 4, which is what makes the threshold slider meaningful. It also reads a
-          missing blood test as information instead of needing a substitute value.
+          The forest has the highest recall and the highest average precision. The SVM is 16
+          points behind on recall &mdash; far outside either standard deviation &mdash; so it was
+          rejected. The depth-3 tree comes close on recall, but it emits only 3 distinct scores
+          against the forest&rsquo;s 367, which is what makes the threshold slider meaningful.
         </p>
         <p>
-          The tree still ships, as the explanation layer: every prediction below is accompanied by
-          the rule path that a clinician can check by hand.
+          The tree still ships, as the explanation layer: every prediction is accompanied by the
+          rule path that a clinician can check by hand. Its first split is{" "}
+          <code>TSH &le; 6.05</code> &mdash; the standard clinical cutoff, recovered from the data.
         </p>
       </div>
 
@@ -96,14 +102,17 @@ export default function ModelInfo() {
         <p>
           <strong>The label is nearly a rule on TSH.</strong> Only 2 of 291 hypothyroid cases sit
           below TSH 6.05, and the original diagnoses were made by clinicians applying that cutoff
-          to these same columns. Remove TSH and average precision collapses from 0.996 to 0.360, so
-          the model is partly recovering its own label definition.
+          to these same columns. Remove TSH and average precision collapses from 0.932 to 0.447,
+          so the model is partly recovering its own label definition.
         </p>
         <p>
-          <strong>The population was already referred, not screened.</strong> Being on thyroxine is
-          the second strongest feature, and it is circular &mdash; replacement therapy means
-          somebody had already diagnosed the condition. Expect weaker performance on an unscreened
-          population where TSH is often never ordered.
+          <strong>FTI is not an independent test.</strong> It is TT4 divided by T4U, so the four
+          blood tests are really three measurements plus a derived index.
+        </p>
+        <p>
+          <strong>The population was referred for testing, not screened.</strong> Prevalence here
+          is 8.0%, far above a general population, and TSH was ordered for every hypothyroid
+          patient in the data. Expect weaker performance where TSH is often never ordered.
         </p>
         <div className="warn">
           Decision support for exploration only. Not a diagnostic device, and not validated for

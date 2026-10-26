@@ -65,10 +65,10 @@ export default function Batch() {
       <div className="card">
         <h2>Upload a CSV</h2>
         <p>
-          One patient per row. An <code>age</code> column is required; everything else is optional
-          and defaults to &ldquo;not measured&rdquo; or &ldquo;no&rdquo;. Column names follow the
-          dataset &mdash; <code>TSH</code>, <code>TT4</code>, <code>T4U</code>, <code>FTI</code>,{" "}
-          <code>sex</code>, <code>on thyroxine</code> and so on.
+          One patient per row. An <code>age</code> column is required; the rest are optional and
+          default to &ldquo;not measured&rdquo;. Column names follow the dataset &mdash;{" "}
+          <code>age</code>, <code>sex</code>, <code>TSH</code>, <code>TT4</code>,{" "}
+          <code>T4U</code> and <code>FTI</code>.
         </p>
 
         <div

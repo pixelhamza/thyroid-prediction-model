@@ -7,35 +7,39 @@ import json
 from pathlib import Path
 
 import joblib
-import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, average_precision_score
+from sklearn.metrics import average_precision_score, classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 
 ROOT = Path(__file__).resolve().parent.parent
-CSV = ROOT / "dataset" / "cleaned_dataset_Thyroid1.csv"
+CSV = ROOT / "dataset" / "hypothyroid.csv"
 OUT = ROOT / "models"
 
-# Value column -> the flag saying whether the test was actually run.
-LAB_FLAGS = {"TSH": "TSH measured", "TT4": "TT4 measured",
-             "T4U": "T4U measured", "FTI": "FTI measured"}
+FEATURES = ["age", "sex", "TSH", "TT4", "T4U", "FTI"]
+TARGET = "binaryClass"
 
 
 def load_clean():
-    """Same cleaning as the notebooks: drop duplicates, undo the mean-imputation."""
-    df = pd.read_csv(CSV).drop_duplicates()
-    for value, flag in LAB_FLAGS.items():
-        df.loc[df[flag] == 0, value] = np.nan
-    df.loc[~df["sex"].isin([0.0, 1.0]), "sex"] = np.nan
-    return df.drop(columns=["hypopituitary"])
+    """Same cleaning as notebook/thyroid.ipynb, section 3.
+
+    The notebook uses LabelEncoder and checks which label is which; the mappings it
+    arrives at are written out directly here.
+    """
+    df = pd.read_csv(CSV, na_values="?")
+    df["sex"] = df["sex"].map({"F": 0.0, "M": 1.0})
+    df[TARGET] = (df[TARGET] == "N").astype(int)    # "N" is the hypothyroid group
+    df = df[~(df["age"] > 120)]                     # one impossible age
+    # Missing blood tests stay missing; both models read NaN directly.
+    return df[FEATURES + [TARGET]].drop_duplicates()
 
 
 def main():
     df = load_clean()
-    X = df.drop(columns=["binaryClass"])
-    y = df["binaryClass"]
+    X = df[FEATURES]
+    y = df[TARGET]
+    print(f"{len(df)} patients, {y.sum()} hypothyroid ({100 * y.mean():.2f}%)")
 
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, stratify=y, random_state=42
@@ -58,8 +62,7 @@ def main():
     joblib.dump(rf, OUT / "rf.joblib", compress=3)
     joblib.dump(dt, OUT / "dt.joblib", compress=3)
     (OUT / "metadata.json").write_text(json.dumps({
-        "features": list(X.columns),      # column order the models expect
-        "lab_flags": LAB_FLAGS,
+        "features": FEATURES,          # column order the models expect
         "default_threshold": 0.5,
     }, indent=2))
 

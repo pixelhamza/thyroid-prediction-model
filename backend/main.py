@@ -28,66 +28,32 @@ rf = joblib.load(MODELS / "rf.joblib")
 dt = joblib.load(MODELS / "dt.joblib")
 meta = json.loads((MODELS / "metadata.json").read_text())
 FEATURES = meta["features"]
-LAB_FLAGS = meta["lab_flags"]
 
-# Pydantic field -> dataset column. The dataset uses spaces, which fields cannot.
-FLAG_FIELDS = {
-    "on_thyroxine": "on thyroxine",
-    "query_on_thyroxine": "query on thyroxine",
-    "on_antithyroid_medication": "on antithyroid medication",
-    "sick": "sick",
-    "pregnant": "pregnant",
-    "thyroid_surgery": "thyroid surgery",
-    "i131_treatment": "I131 treatment",
-    "query_hypothyroid": "query hypothyroid",
-    "query_hyperthyroid": "query hyperthyroid",
-    "lithium": "lithium",
-    "goitre": "goitre",
-    "tumor": "tumor",
-    "psych": "psych",
-}
+LABS = ["TSH", "TT4", "T4U", "FTI"]
 
 
 class Patient(BaseModel):
     age: float = Field(..., ge=0, le=120)
-    # 0.0 = female, 1.0 = male in the source data (every pregnant patient is 0.0).
+    # 0.0 = female, 1.0 = male in the source data.
     sex: str | None = Field(None, pattern="^[FM]$")
 
     # Blood tests. None means "not measured" and is passed to the model as NaN —
-    # the forest reads missingness as information rather than being given a fill.
+    # both models read missingness directly rather than being given a fill.
     tsh: float | None = Field(None, ge=0)
     tt4: float | None = Field(None, ge=0)
     t4u: float | None = Field(None, ge=0)
     fti: float | None = Field(None, ge=0)
-    t3_measured: bool = False  # the source CSV kept this flag but not the T3 value
-
-    on_thyroxine: bool = False
-    query_on_thyroxine: bool = False
-    on_antithyroid_medication: bool = False
-    sick: bool = False
-    pregnant: bool = False
-    thyroid_surgery: bool = False
-    i131_treatment: bool = False
-    query_hypothyroid: bool = False
-    query_hyperthyroid: bool = False
-    lithium: bool = False
-    goitre: bool = False
-    tumor: bool = False
-    psych: bool = False
 
     threshold: float = Field(0.5, ge=0, le=1)
 
 
 def build_row(p: Patient) -> pd.DataFrame:
-    row = {c: 0.0 for c in FEATURES}
-    row["age"] = p.age
-    row["sex"] = {"F": 0.0, "M": 1.0}.get(p.sex, np.nan)
-    for field, column in FLAG_FIELDS.items():
-        row[column] = float(getattr(p, field))
-    row["T3 measured"] = float(p.t3_measured)
-    for name, value in [("TSH", p.tsh), ("TT4", p.tt4), ("T4U", p.t4u), ("FTI", p.fti)]:
-        row[name] = np.nan if value is None else value
-        row[LAB_FLAGS[name]] = 0.0 if value is None else 1.0
+    row = {
+        "age": p.age,
+        "sex": {"F": 0.0, "M": 1.0}.get(p.sex, np.nan),
+        "TSH": p.tsh, "TT4": p.tt4, "T4U": p.t4u, "FTI": p.fti,
+    }
+    row = {k: (np.nan if v is None else v) for k, v in row.items()}
     return pd.DataFrame([row])[FEATURES]
 
 
@@ -108,17 +74,14 @@ def explain(X: pd.DataFrame) -> list[str]:
     return steps
 
 
-MAX_ROWS = 5000   # the full dataset is 3,771 rows
-CLINICAL_FLAGS = list(FLAG_FIELDS.values())
+MAX_ROWS = 5000   # the full dataset is 3,658 rows
 
 
 def frame_from_csv(df: pd.DataFrame) -> pd.DataFrame:
     """Coerce an arbitrary uploaded CSV into the exact feature frame the models expect.
 
-    Accepts the dataset's own column names. Anything absent gets a sensible default:
-    labs become NaN (not measured), flags become 0. Where a '* measured' flag is present
-    and 0, the paired value is forced to NaN — that undoes the mean-imputation baked into
-    the published CSV, matching what train_model.py does.
+    Accepts the dataset's own column names. An absent blood test becomes NaN, which is
+    what the models expect for "this test was not run".
     """
     if "age" not in df.columns:
         raise HTTPException(400, "CSV must contain an 'age' column")
@@ -131,27 +94,15 @@ def frame_from_csv(df: pd.DataFrame) -> pd.DataFrame:
         if sex.dtype == object:
             sex = sex.astype(str).str.strip().str.upper().map({"F": 0.0, "M": 1.0})
         else:
-            # anything that is not exactly 0/1 is the imputation sentinel
             sex = pd.to_numeric(sex, errors="coerce").where(lambda s: s.isin([0.0, 1.0]))
         out["sex"] = sex
     else:
         out["sex"] = np.nan
 
-    for column in CLINICAL_FLAGS:
-        out[column] = (pd.to_numeric(df[column], errors="coerce").fillna(0).clip(0, 1)
-                       if column in df.columns else 0.0)
+    for lab in LABS:
+        out[lab] = (pd.to_numeric(df[lab], errors="coerce") if lab in df.columns
+                    else np.nan)
 
-    for value, flag in LAB_FLAGS.items():
-        values = (pd.to_numeric(df[value], errors="coerce") if value in df.columns
-                  else pd.Series(np.nan, index=df.index))
-        if flag in df.columns:
-            measured = pd.to_numeric(df[flag], errors="coerce").fillna(0) == 1
-            values = values.where(measured)          # reverse the mean-imputation
-        out[value] = values
-        out[flag] = values.notna().astype(float)     # flag follows the data
-
-    out["T3 measured"] = (pd.to_numeric(df["T3 measured"], errors="coerce").fillna(0).clip(0, 1)
-                          if "T3 measured" in df.columns else 0.0)
     return out[FEATURES]
 
 
@@ -185,12 +136,12 @@ def predict(patient: Patient):
 @app.get("/template.csv", response_class=PlainTextResponse)
 def template():
     """A minimal CSV showing the accepted headers. Blank lab cells mean 'not measured'."""
-    header = "age,sex,TSH,TT4,T4U,FTI,on thyroxine,query hypothyroid"
+    header = "age,sex,TSH,TT4,T4U,FTI"
     rows = [
-        "55,F,14.2,71,0.95,74,0,0",
-        "41,F,1.3,125,1.14,109,0,0",
-        "60,M,22,,,,0,1",
-        "70,F,9.5,110,1.0,105,1,0",
+        "55,F,14.2,71,0.95,74",
+        "41,F,1.3,125,1.14,109",
+        "60,M,22,,,",
+        "70,F,9.5,110,1.0,105",
     ]
     return "\n".join([header, *rows]) + "\n"
 
@@ -212,8 +163,10 @@ async def predict_batch(
         raise HTTPException(400, f"{len(df)} rows exceeds the {MAX_ROWS}-row limit")
 
     X = frame_from_csv(df)
-    if X["age"].isna().any():
-        raise HTTPException(400, "some rows have a missing or non-numeric age")
+    # A single blank age is fine — the models read NaN. Every age missing means the
+    # file did not parse as expected, which is worth rejecting.
+    if X["age"].isna().all():
+        raise HTTPException(400, "no usable 'age' values — check the file's delimiter")
 
     proba = rf.predict_proba(X)[:, 1]
     flagged = proba >= threshold
