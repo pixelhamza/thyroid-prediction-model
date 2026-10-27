@@ -3,7 +3,7 @@
 # Thyroid Disease Classification
 
 Predicts **negative** or **hypothyroid** from four blood tests plus age and sex.
-A random forest makes the call; a depth-3 decision tree supplies the reason.
+Four models were compared; a random forest was selected and is the only model served.
 
 > Decision support for exploration only. Not a diagnostic device.
 
@@ -25,7 +25,7 @@ Clinical history is excluded on purpose. Flags like `on thyroxine` mean the cond
 |---|---|---|---|
 | **Random forest** | **0.9931 ± 0.0097** | **0.8935** | serving |
 | Logistic regression | 0.9911 ± 0.0086 | 0.8573 | rejected |
-| Decision tree (d3) | 0.9897 ± 0.0137 | 0.8073 | explains |
+| Decision tree (d3) | 0.9897 ± 0.0137 | 0.8073 | rejected |
 | SVM (RBF) | 0.8344 ± 0.0538 | 0.8304 | rejected |
 
 Recall and average precision from 25-fit repeated stratified CV. On the held-out set the forest
@@ -45,9 +45,9 @@ the forest costs 9. Its coefficients are a useful cross-check though: `TSH` posi
 `TT4` negative, `age` and `sex` near zero, which is the same ordering the forest's permutation
 importance found.
 
-The tree still ships as the explanation layer. Its first split is `TSH <= 6.05`, the standard
-clinical cutoff, recovered from the data. It agrees with the forest on 99.5% of test patients;
-the API returns both so disagreements are visible.
+The tree is not deployed, but its first split is `TSH <= 6.05` — the standard clinical cutoff,
+recovered from the data without being told it. It agrees with the forest on 99.5% of test
+patients, which is part of the evidence for the TSH limit below.
 
 ## Limits
 

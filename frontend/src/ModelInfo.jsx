@@ -95,9 +95,9 @@ export default function ModelInfo() {
           (0.6563), so at a matched 95% recall it raises 29 false alarms where the forest raises 9.
         </p>
         <p>
-          The tree still ships, as the explanation layer: every prediction is accompanied by the
-          rule path that a clinician can check by hand. Its first split is{" "}
-          <code>TSH &le; 6.05</code> &mdash; the standard clinical cutoff, recovered from the data.
+          The forest is the only model deployed. The depth-3 tree is worth one note even so: its
+          first split is <code>TSH &le; 6.05</code> &mdash; the standard clinical cutoff, recovered
+          from the data without being told it.
         </p>
       </div>
 

@@ -1,7 +1,6 @@
 """Thyroid screening API.
 
-The random forest predicts; the depth-3 decision tree explains. Both were trained by
-train_model.py — run that first.
+Serves the random forest trained by train_model.py — run that first.
 
     uvicorn backend.main:app --reload
 """
@@ -25,7 +24,6 @@ if not (MODELS / "rf.joblib").exists():
     raise RuntimeError("models/ is empty — run: python backend/train_model.py")
 
 rf = joblib.load(MODELS / "rf.joblib")
-dt = joblib.load(MODELS / "dt.joblib")
 meta = json.loads((MODELS / "metadata.json").read_text())
 FEATURES = meta["features"]
 
@@ -55,23 +53,6 @@ def build_row(p: Patient) -> pd.DataFrame:
     }
     row = {k: (np.nan if v is None else v) for k, v in row.items()}
     return pd.DataFrame([row])[FEATURES]
-
-
-def explain(X: pd.DataFrame) -> list[str]:
-    """Walk the decision tree's path for this patient and describe each split."""
-    tree = dt.tree_
-    path = dt.decision_path(X).indices
-    steps = []
-    for node, nxt in zip(path, path[1:]):
-        column = FEATURES[tree.feature[node]]
-        cutoff = tree.threshold[node]
-        value = X.iloc[0][column]
-        went_left = nxt == tree.children_left[node]
-        if np.isnan(value):
-            steps.append(f"{column} not measured → {'left' if went_left else 'right'} branch")
-        else:
-            steps.append(f"{column} {value:g} {'≤' if went_left else '>'} {cutoff:g}")
-    return steps
 
 
 MAX_ROWS = 5000   # the full dataset is 3,658 rows
@@ -126,8 +107,6 @@ def predict(patient: Patient):
         "probability": round(probability, 4),
         "prediction": "hypothyroid" if probability >= patient.threshold else "negative",
         "threshold": patient.threshold,
-        "tree_prediction": "hypothyroid" if dt.predict(X)[0] == 1 else "negative",
-        "explanation": explain(X),
         "disclaimer": "Decision support only, not a diagnosis. "
                       "Trained on an already-referred population.",
     }

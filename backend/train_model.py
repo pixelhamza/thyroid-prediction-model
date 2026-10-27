@@ -1,6 +1,6 @@
 """Train and save the models the API serves.
 
-Writes models/rf.joblib (predictions) and models/dt.joblib (explanations).
+Writes models/rf.joblib — the model the API serves.
 Run from anywhere: python backend/train_model.py
 """
 import json
@@ -11,7 +11,6 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import average_precision_score, classification_report
 from sklearn.model_selection import train_test_split
-from sklearn.tree import DecisionTreeClassifier
 
 ROOT = Path(__file__).resolve().parent.parent
 CSV = ROOT / "dataset" / "hypothyroid.csv"
@@ -49,9 +48,7 @@ def main():
     # drifts by ~2e-16 between calls, which makes a served endpoint hard to test.
     rf = RandomForestClassifier(n_estimators=500, min_samples_leaf=2,
                                 class_weight="balanced", random_state=42, n_jobs=1)
-    dt = DecisionTreeClassifier(max_depth=3, class_weight="balanced", random_state=42)
     rf.fit(X_train, y_train)
-    dt.fit(X_train, y_train)
 
     proba = rf.predict_proba(X_test)[:, 1]
     print(classification_report(y_test, (proba >= 0.5).astype(int),
@@ -60,13 +57,12 @@ def main():
 
     OUT.mkdir(exist_ok=True)
     joblib.dump(rf, OUT / "rf.joblib", compress=3)
-    joblib.dump(dt, OUT / "dt.joblib", compress=3)
     (OUT / "metadata.json").write_text(json.dumps({
         "features": FEATURES,          # column order the models expect
         "default_threshold": 0.5,
     }, indent=2))
 
-    for f in ["rf.joblib", "dt.joblib", "metadata.json"]:
+    for f in ["rf.joblib", "metadata.json"]:
         print(f"wrote models/{f}  ({(OUT / f).stat().st_size / 1e6:.2f} MB)")
 
 

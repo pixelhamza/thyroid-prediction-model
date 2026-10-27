@@ -40,7 +40,6 @@ export default function Predict() {
   }
 
   const positive = result?.prediction === "hypothyroid";
-  const agrees = result?.tree_prediction === result?.prediction;
 
   return (
     <form onSubmit={submit}>
@@ -158,22 +157,6 @@ export default function Predict() {
             <div className="gauge-mark" style={{ left: `${result.threshold * 100}%` }} />
           </div>
           <div className="vsub">marker shows the threshold</div>
-
-          <h3>Why &mdash; the decision tree&rsquo;s path</h3>
-          <ul className="why">
-            {result.explanation.map((step, i) => (
-              <li key={i}>{step}</li>
-            ))}
-          </ul>
-
-          <div
-            className="agree"
-            style={{ color: agrees ? "var(--ink-3)" : "var(--orange)" }}
-          >
-            {agrees
-              ? "The decision tree agrees with the forest."
-              : `The tree disagrees (it says ${result.tree_prediction}) \u2014 treat this case as borderline.`}
-          </div>
 
           <div className="warn">{result.disclaimer}</div>
         </div>
