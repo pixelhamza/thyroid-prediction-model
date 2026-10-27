@@ -13,21 +13,49 @@ export const EMPTY = {
   threshold: 0.5,
 };
 
-// Held-out test set: 732 patients, 58 hypothyroid.
+// The headline. 25-fit repeated stratified cross-validation (5 folds x 5 repeats)
+// over all 3,658 patients — not a single split, because one patient moves recall
+// by 1.7 points on a 58-positive test set.
+export const HERO = { v: "0.9931", pm: "± 0.0097", k: "cross-validated recall" };
+
 export const HEADLINE = [
-  { v: "1.000", k: "recall (0 missed)" },
-  { v: "0.853", k: "precision" },
-  { v: "0.932", k: "avg precision" },
-  { v: "10", k: "false alarms" },
+  { v: "0.8935", pm: "± 0.0350", k: "average precision" },
+  { v: "0.8068", pm: "± 0.0338", k: "precision" },
+  { v: "25", k: "fits (5 folds × 5 repeats)" },
 ];
 
-// Recall from 25-fit repeated stratified CV (mean ± sd).
+// Mean ± sd over those 25 fits.
 export const COMPARISON = [
-  { name: "Random forest", recall: 0.9931, sd: 0.0097, ap: 0.8935, pick: "served" },
-  { name: "Logistic regression", recall: 0.9911, sd: 0.0086, ap: 0.8573, pick: "rejected" },
-  { name: "Decision tree (d3)", recall: 0.9897, sd: 0.0137, ap: 0.8073, pick: "explains" },
-  { name: "SVM (RBF)", recall: 0.8344, sd: 0.0538, ap: 0.8304, pick: "rejected" },
+  { slug: "rf", name: "Random forest", recall: 0.9931, sd: 0.0097, ap: 0.8935, apSd: 0.0350, prec: 0.8068, pick: "served" },
+  { slug: "lr", name: "Logistic regression", recall: 0.9911, sd: 0.0086, ap: 0.8573, apSd: 0.0440, prec: 0.6563, pick: "rejected" },
+  { slug: "dt", name: "Decision tree (d3)", recall: 0.9897, sd: 0.0137, ap: 0.8073, apSd: 0.0402, prec: 0.7943, pick: "rejected" },
+  { slug: "svm", name: "SVM (RBF)", recall: 0.8344, sd: 0.0538, ap: 0.8304, apSd: 0.0527, prec: 0.8027, pick: "rejected" },
 ];
+
+// Lowest threshold still reaching 95% recall, judged on what it costs.
+export const MATCHED = [
+  { slug: "rf", name: "Random forest", thr: 0.674, missed: 2, fa: 9 },
+  { slug: "dt", name: "Decision tree (d3)", thr: 0.980, missed: 1, fa: 9 },
+  { slug: "svm", name: "SVM (RBF)", thr: 0.241, missed: 2, fa: 20 },
+  { slug: "lr", name: "Logistic regression", thr: 0.452, missed: 2, fa: 29 },
+];
+
+// Forest retrained on each feature subset, scored on the held-out split.
+export const ABLATION = {
+  base: { label: "all six features", ap: 0.9315 },
+  rows: [
+    { slug: "no-tsh", label: "without TSH", ap: 0.4471 },
+    { slug: "tsh-only", label: "TSH only", ap: 0.8646 },
+    { slug: "no-fti", label: "without FTI", ap: 0.9318 },
+    { slug: "no-age", label: "without age", ap: 0.9354 },
+    { slug: "no-tt4", label: "without TT4", ap: 0.9359 },
+    { slug: "no-t4u", label: "without T4U", ap: 0.9446 },
+    { slug: "no-sex", label: "without sex", ap: 0.9467 },
+  ],
+};
+
+// One 80/20 split, reported as a secondary check rather than the headline.
+export const HELDOUT = { n: 732, pos: 58, tp: 58, fn: 0, fp: 10, tn: 664, ap: 0.9315 };
 
 export const EXAMPLES = [
   {
